@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Add-in-only manifest, not the unified (Teams) manifest, because this add-in
+  targets Excel only and is sideloaded from a shared network folder or served
+  from the Historian itself rather than published through Microsoft 365 admin
+  center or AppSource.
+
+  Placeholder: every https://REPLACE_WITH_YOUR_HOST value must be changed to
+  wherever these files are actually served from before sideloading. See
+  README.md "Deploy" for the two supported hosting choices.
+-->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <Id>a0a459f4-8b18-4a0f-b62c-5bf3f2b37a3c</Id>
+  <Version>1.0.3.0</Version>
+  <ProviderName>Flow Software</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Timebase Historian" />
+  <Description DefaultValue="Browse Timebase Historian tags and pull time-aligned history straight into worksheet formulas." />
+  <IconUrl DefaultValue="https://REPLACE_WITH_YOUR_HOST/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://REPLACE_WITH_YOUR_HOST/assets/icon-80.png" />
+  <SupportUrl DefaultValue="https://github.com/jbknepp98/timebase-historian-excel-add-in" />
+
+  <AppDomains>
+    <AppDomain>https://REPLACE_WITH_YOUR_HOST</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Workbook" />
+  </Hosts>
+
+  <!--
+    No base-level Requirements. CustomFunctionsRuntime is declared under
+    VersionOverrides only: a host that evaluates a set at the base level and
+    does not recognise it there treats the whole add-in as unsupported and
+    hides it, with no error.
+  -->
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://REPLACE_WITH_YOUR_HOST/src/taskpane/taskpane.html" />
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.1">
+        <bt:Set Name="CustomFunctionsRuntime" MinVersion="1.1" />
+      </bt:Sets>
+    </Requirements>
+
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <!--
+          Custom functions belong under AllFormFactors (the schema rejects the
+          CustomFunctions extension point directly under Host). They run in
+          their own runtime page, Functions.Page.Url, not a shared runtime: on
+          Excel for Mac 16.105 a sideloaded shared-runtime add-in never executes
+          its functions (formulas stay #BUSY!), while a separate runtime does.
+        -->
+        <AllFormFactors>
+          <ExtensionPoint xsi:type="CustomFunctions">
+            <Script>
+              <SourceLocation resid="Functions.Script.Url" />
+            </Script>
+            <Page>
+              <SourceLocation resid="Functions.Page.Url" />
+            </Page>
+            <Metadata>
+              <SourceLocation resid="Functions.Metadata.Url" />
+            </Metadata>
+            <Namespace resid="Functions.Namespace" />
+          </ExtensionPoint>
+        </AllFormFactors>
+
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title" />
+            <Description resid="GetStarted.Description" />
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl" />
+          </GetStarted>
+
+          <FunctionFile resid="Functions.Page.Url" />
+
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="Timebase.Group">
+                <Label resid="Group.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16" />
+                  <bt:Image size="32" resid="Icon.32x32" />
+                  <bt:Image size="80" resid="Icon.80x80" />
+                </Icon>
+                <Control xsi:type="Button" id="Timebase.TaskpaneButton">
+                  <Label resid="TaskpaneButton.Label" />
+                  <Supertip>
+                    <Title resid="TaskpaneButton.Label" />
+                    <Description resid="TaskpaneButton.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16" />
+                    <bt:Image size="32" resid="Icon.32x32" />
+                    <bt:Image size="80" resid="Icon.80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Timebase.Taskpane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://REPLACE_WITH_YOUR_HOST/assets/icon-16.png" />
+        <bt:Image id="Icon.32x32" DefaultValue="https://REPLACE_WITH_YOUR_HOST/assets/icon-32.png" />
+        <bt:Image id="Icon.80x80" DefaultValue="https://REPLACE_WITH_YOUR_HOST/assets/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/jbknepp98/timebase-historian-excel-add-in" />
+        <bt:Url id="Taskpane.Url" DefaultValue="https://REPLACE_WITH_YOUR_HOST/src/taskpane/taskpane.html" />
+        <bt:Url id="Functions.Page.Url" DefaultValue="https://REPLACE_WITH_YOUR_HOST/src/functions/functions.html" />
+        <bt:Url id="Functions.Script.Url" DefaultValue="https://REPLACE_WITH_YOUR_HOST/src/functions/functions.bundle.js" />
+        <bt:Url id="Functions.Metadata.Url" DefaultValue="https://REPLACE_WITH_YOUR_HOST/src/functions/functions.json" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="Timebase Historian is ready" />
+        <bt:String id="Group.Label" DefaultValue="Timebase" />
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Timebase Historian" />
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Browse datasets and tags, and pull history into the sheet" />
+        <bt:String id="Functions.Namespace" DefaultValue="TB" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Use the Historian task pane to connect, browse tags, and insert =TB.HISTORY(...) formulas." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
