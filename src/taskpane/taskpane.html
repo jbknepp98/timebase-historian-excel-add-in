@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Timebase Historian</title>
+
+  <!-- Development only: relays console output to tools/serve.js when served from localhost. -->
+  <script src="../runtime/devlog.js"></script>
+
+  <!--
+    Office.js and its CSS. Loaded from Microsoft's CDN per Microsoft's own
+    guidance -- never vendor or pin a specific build of office.js, it is
+    versioned and served centrally so Office hosts always get a compatible
+    release.
+  -->
+  <link rel="stylesheet" href="https://appsforoffice.microsoft.com/fabric/office-ui-fabric-core/11.0.0/css/fabric.min.css" />
+  <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <link rel="stylesheet" href="taskpane.css" />
+</head>
+<body class="ms-Fabric">
+  <header class="tb-header">
+    <img src="../../assets/icon-32.png" alt="" width="20" height="20" />
+    <h1>Timebase Historian</h1>
+  </header>
+
+  <main id="app" class="tb-app" hidden>
+    <nav class="tb-tabs" role="tablist">
+      <button class="tb-tab is-active" data-tab="connect" role="tab" aria-selected="true">Connect</button>
+      <button class="tb-tab" data-tab="insert" role="tab" aria-selected="false">Insert</button>
+    </nav>
+
+    <!-- ============================== Connect ============================== -->
+    <section id="tab-connect" class="tb-panel" role="tabpanel">
+      <p class="tb-hint">
+        This connects to the Historian's REST API directly from your browser. Enter the host and port
+        only &mdash; not <code>/api/help</code> or any other path.
+      </p>
+
+      <label class="tb-field">
+        <span>Historian address</span>
+        <input id="historianUrl" type="text" placeholder="https://historian:4512" autocomplete="off" />
+      </label>
+
+      <p id="serverAuthNote" class="tb-hint" hidden>
+        <strong>Authentication is handled by the server.</strong> It signs in to Pulse as client
+        <code id="serverAuthClient"></code>, so no client secret is entered or stored in Excel.
+      </p>
+
+      <label id="authToggle" class="tb-field tb-checkbox">
+        <input id="authEnabled" type="checkbox" checked />
+        <span>Authentication is on (this Historian requires a Pulse token)</span>
+      </label>
+
+      <div id="authFields">
+        <label class="tb-field">
+          <span>Pulse address <span class="tb-optional">(optional &mdash; defaults to the Historian host on port 4542)</span></span>
+          <input id="pulseUrl" type="text" placeholder="https://historian:4542" autocomplete="off" />
+        </label>
+        <label class="tb-field">
+          <span>Pulse client id</span>
+          <input id="clientId" type="text" autocomplete="off" />
+        </label>
+        <label class="tb-field">
+          <span>Pulse client secret</span>
+          <input id="clientSecret" type="password" autocomplete="new-password" />
+        </label>
+        <p class="tb-warning">
+          <strong>Saved on this computer for this add-in, not in the workbook.</strong> Better still, keep
+          the secret out of Excel entirely: run <code>node tools/set-credentials.js</code> on the server
+          and this section disappears. Use a client with read-only Historian access either way. See the
+          <a href="#" id="securityLink">security note</a>.
+        </p>
+      </div>
+
+      <label class="tb-field">
+        <span>Row limit <span class="tb-optional">(safety cap per formula)</span></span>
+        <input id="maxRows" type="number" min="1" step="1000" value="100000" />
+      </label>
+
+      <div class="tb-actions">
+        <button id="testConnection" class="tb-button">Test connection</button>
+        <button id="saveSettings" class="tb-button tb-button-primary">Save</button>
+      </div>
+
+      <div id="connectStatus" class="tb-status" role="status"></div>
+      <div class="tb-guide">
+        <span class="tb-guide-title">Getting started</span>
+        <p class="tb-hint tb-hint-tight">
+          New to the add-in? Add the getting-started guide to this workbook: worked examples, a function
+          reference, time expressions and troubleshooting as new sheets. Every example is a live formula you
+          point at your own data on its Setup sheet.
+        </p>
+        <div class="tb-actions">
+          <button id="addGuide" class="tb-button" type="button">Add the getting-started guide</button>
+        </div>
+        <div id="guideStatus" class="tb-status" role="status"></div>
+      </div>
+    </section>
+
+
+    <!-- ============================== Insert ============================== -->
+    <section id="tab-insert" class="tb-panel" hidden role="tabpanel">
+      <p class="tb-hint">Build a formula and insert it at the active cell.</p>
+
+      <label class="tb-field">
+        <span>Dataset</span>
+        <select id="insertDataset"></select>
+      </label>
+
+      <div class="tb-field">
+        <span>Tags</span>
+        <div class="tb-segmented" role="radiogroup" aria-label="Where the tag names come from">
+          <label><input type="radio" name="tagSource" value="list" checked /> Pick tags</label>
+          <label><input type="radio" name="tagSource" value="range" /> Worksheet range</label>
+        </div>
+
+        <div id="tagSourceRange" hidden>
+          <div class="tb-input-row">
+            <input id="insertTagRange" type="text" placeholder="Sheet1!A2:A20" autocomplete="off" aria-label="Range holding tag names" />
+            <button id="useSelectedRange" class="tb-button tb-button-small" type="button">Use selected cells</button>
+          </div>
+          <p class="tb-hint tb-hint-tight">
+            One tag name per cell; blank cells are skipped. The formula references the range, so editing those
+            cells changes the tags.
+          </p>
+        </div>
+
+        <div id="tagSourceList">
+        <div id="insertTagChips" class="tb-chips" aria-live="polite"></div>
+        <button id="openTagPicker" class="tb-button tb-button-small" type="button">+ Add tags&hellip;</button>
+
+        <div id="tagPicker" class="tb-picker" hidden>
+          <div class="tb-search-row">
+            <input id="tagPickerQuery" type="text" placeholder="Search names, e.g. *State or name:FL*" autocomplete="off" />
+            <button id="tagPickerSearch" class="tb-button tb-button-small" type="button">Search</button>
+          </div>
+          <div id="tagPickerStatus" class="tb-status" role="status"></div>
+          <ul id="tagPickerResults" class="tb-results"></ul>
+          <div class="tb-actions">
+            <button id="tagPickerAdd" class="tb-button tb-button-primary tb-button-small" type="button" disabled>Add selected</button>
+            <button id="tagPickerClose" class="tb-button tb-button-small" type="button">Done</button>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="tb-field">
+        <label for="insertStart"><span>Start <span class="tb-optional">(blank = latest value only); a date, or relative like -24h</span></span></label>
+        <div class="tb-input-row">
+          <input id="insertStart" type="text" placeholder="-24h" autocomplete="off" />
+          <button id="insertStartPick" class="tb-icon-button" type="button" title="Pick a date and time" aria-label="Pick a date and time for Start" aria-expanded="false">&#128197;</button>
+        </div>
+        <div id="insertStartPicker" class="tb-datetime" hidden>
+          <input id="insertStartDateTime" type="datetime-local" step="60" />
+          <button id="insertStartNow" class="tb-button tb-button-small" type="button">Now</button>
+          <button id="insertStartClear" class="tb-button tb-button-small" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div class="tb-field">
+        <label for="insertEnd"><span>End <span class="tb-optional">(blank = now); a date, or relative like -24h</span></span></label>
+        <div class="tb-input-row">
+          <input id="insertEnd" type="text" placeholder="" autocomplete="off" />
+          <button id="insertEndPick" class="tb-icon-button" type="button" title="Pick a date and time" aria-label="Pick a date and time for End" aria-expanded="false">&#128197;</button>
+        </div>
+        <div id="insertEndPicker" class="tb-datetime" hidden>
+          <input id="insertEndDateTime" type="datetime-local" step="60" />
+          <button id="insertEndNow" class="tb-button tb-button-small" type="button">Now</button>
+          <button id="insertEndClear" class="tb-button tb-button-small" type="button">Clear</button>
+        </div>
+      </div>
+
+      <label class="tb-field">
+        <span>Interval <span class="tb-optional">(blank = every raw sample)</span></span>
+        <input id="insertInterval" type="text" placeholder="5m" autocomplete="off" />
+      </label>
+
+      <label class="tb-field">
+        <span>Aggregate <span class="tb-optional">(only used with an interval; every slice starts from the value held at its start)</span></span>
+        <select id="insertAggregate">
+          <option value="avg" title="Each value counts for as long as it was in force during the slice, so a value held 4 minutes weighs four times one held 1 minute.">Time-weighted average (avg)</option>
+          <option value="min">Minimum (min)</option>
+          <option value="max">Maximum (max)</option>
+          <option value="first">Value at slice start (first)</option>
+          <option value="last">Value at slice end (last)</option>
+          <option value="count">Samples logged (count)</option>
+          <option value="sum">Sum of samples logged (sum)</option>
+          <option value="range">Max minus min (range)</option>
+          <option value="step" title="Sample-and-hold for state tags: each row is the last raw value at or before its clock-aligned timestamp. A state shorter than the interval can fall between two rows and not appear.">Last value (step) &mdash; for state tags</option>
+        </select>
+      </label>
+
+      <p id="stepHint" class="tb-hint" hidden>
+        <strong>Last value (step)</strong> writes one row per clock mark (07:00, 07:05, &hellip;) holding the
+        last raw value at or before it, with no averaging. Use it for state and enum tags. Interval defaults to
+        5 minutes, quality to <code>good</code>, and values are cast to integers. A state that starts and ends
+        between two rows (a one-second fault, say) will not appear: that is how snapshot sampling works.
+      </p>
+
+      <label class="tb-field">
+        <span>Quality</span>
+        <select id="insertQuality">
+          <option value="any">any</option>
+          <option value="good">good</option>
+          <option value="notbad">notbad</option>
+        </select>
+      </label>
+
+      <fieldset class="tb-fieldset">
+        <legend>Extra columns per tag <span class="tb-optional">(over each row's range; Quality is the worst in it)</span></legend>
+        <label class="tb-checkbox"><input type="checkbox" class="tb-extra-col" data-col="quality" /> <span>Quality (worst OPC code)</span></label>
+        <label class="tb-checkbox"><input type="checkbox" class="tb-extra-col" data-col="status" /> <span>Status (quality in words)</span></label>
+        <label class="tb-checkbox"><input type="checkbox" class="tb-extra-col" data-col="samples" /> <span>Number of samples</span></label>
+        <label class="tb-checkbox"><input type="checkbox" class="tb-extra-col" data-col="good%" /> <span>% Good quality</span></label>
+      </fieldset>
+      <label class="tb-field tb-checkbox" title="Points with no value are quality notes such as 64 (collector heartbeat lost). By default their row stays, the last value carries through it, and it shows red.">
+        <input id="insertDropNoValue" type="checkbox" class="tb-drop-novalue" />
+        <span>Drop rows that have no value (quality notes) instead of showing them red</span>
+      </label>
+
+      <div class="tb-actions">
+        <button id="insertFormula" class="tb-button tb-button-primary">Insert at active cell</button>
+      </div>
+
+      <div id="insertStatus" class="tb-status" role="status"></div>
+
+      <pre id="formulaPreview" class="tb-formula-preview"></pre>
+
+    </section>
+  </main>
+
+  <div id="loadMessage" class="tb-load-message">Loading Office.js&hellip;</div>
+
+  <!--
+    Loaded as an ES module directly, no bundler: every file here is exactly
+    what the web view evaluates. The TB.* worksheet functions are NOT loaded
+    here; they run in their own runtime, src/functions/functions.html.
+  -->
+  <script type="module" src="taskpane.js"></script>
+</body>
+</html>

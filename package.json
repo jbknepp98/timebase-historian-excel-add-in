@@ -1,0 +1,25 @@
+{
+  "name": "timebase-historian-excel",
+  "version": "1.0.3",
+  "private": true,
+  "description": "Excel add-in for Timebase Historian: live tag history, time-weighted aggregates, state sampling and quality columns as worksheet functions.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "check": "node tools/check.js && node tools/make-docs.js --check",
+    "build": "node tools/package.js https://localhost:3443",
+    "start": "node tools/serve.js",
+    "credentials": "node tools/set-credentials.js",
+    "sideload:mac": "node tools/sideload-mac.js",
+    "docs": "node tools/make-docs.js",
+    "icons": "node tools/make-icons.js",
+    "package": "node tools/package.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbknepp98/timebase-historian-excel-add-in.git"
+  }
+}

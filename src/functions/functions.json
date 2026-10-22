@@ -1,0 +1,213 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/office-js/custom-functions.schema.json",
+  "allowCustomDataForDataTypeAny": true,
+  "allowErrorForDataTypeAny": false,
+  "functions": [
+    {
+      "id": "HISTORY",
+      "name": "HISTORY",
+      "description": "Time-aligned history for one or more tags. With a start, the first row is the start itself carrying each tag's last known value; with an interval, each slice is aggregated with avg as a time-weighted average. Values whose latest point is not Good quality show red.",
+      "helpUrl": "https://github.com/jbknepp98/timebase-historian-excel-add-in#tbhistory",
+      "result": {
+        "dimensionality": "matrix"
+      },
+      "parameters": [
+        {
+          "name": "dataset",
+          "description": "Dataset name.",
+          "type": "any"
+        },
+        {
+          "name": "tags",
+          "description": "One tag name, a range of tag names, or an array such as {\"a\",\"b\"}.",
+          "type": "any",
+          "dimensionality": "matrix"
+        },
+        {
+          "name": "start",
+          "description": "Window start: an Excel date, an ISO timestamp, or a relative expression like \"-24h\". Blank means just now.",
+          "type": "any",
+          "optional": true
+        },
+        {
+          "name": "end",
+          "description": "Window end. Blank means now.",
+          "type": "any",
+          "optional": true
+        },
+        {
+          "name": "interval",
+          "description": "Slice width such as \"30s\", \"5m\", \"1h\". Blank means every raw sample, carried forward from the start.",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "aggregate",
+          "description": "avg = time-weighted average (also \"twa\"); or min, max, first, last, count, sum, range. Only used with interval. Defaults to avg. Each slice starts from the value held at its start.",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "quality",
+          "description": "any, good, or notbad. Defaults to any.",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "lookback",
+          "description": "How far before start to look for the carried-in value if the Historian's prior-value point is missing or rejected. Defaults to \"7d\".",
+          "type": "any",
+          "optional": true
+        },
+        {
+          "name": "novalue",
+          "description": "Points with no value (quality notes such as 64): \"flag\" (default) keeps the row, carries the last value through it and shows it red; \"drop\" leaves those rows out.",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "columns",
+          "description": "Extra columns after each tag: any of \"quality\" (worst OPC quality code in the row's range), \"status\" (the same in words), \"samples\" (points logged), \"good%\" (share that were Good). E.g. \"quality,samples,good%\".",
+          "type": "any",
+          "optional": true,
+          "dimensionality": "matrix"
+        }
+      ],
+      "options": {
+        "requiresAddress": false
+      }
+    },
+    {
+      "id": "SAMPLE",
+      "name": "SAMPLE",
+      "description": "Sample-and-hold for state tags: one row per clock-aligned boundary (07:00, 07:05, ...), each the last raw value at or before it. A state shorter than the interval can fall between rows and not appear. Values whose latest point is not Good quality show red.",
+      "helpUrl": "https://github.com/jbknepp98/timebase-historian-excel-add-in#tbsample",
+      "result": {
+        "dimensionality": "matrix"
+      },
+      "parameters": [
+        {
+          "name": "dataset",
+          "description": "Dataset name.",
+          "type": "any"
+        },
+        {
+          "name": "tags",
+          "description": "One tag name, a range of tag names, or an array such as {\"a\",\"b\"}.",
+          "type": "any",
+          "dimensionality": "matrix"
+        },
+        {
+          "name": "start",
+          "description": "Window start: an Excel date, an ISO timestamp, or a relative expression like \"-24h\".",
+          "type": "any"
+        },
+        {
+          "name": "end",
+          "description": "Window end, inclusive. Blank means now.",
+          "type": "any",
+          "optional": true
+        },
+        {
+          "name": "interval",
+          "description": "Minutes between rows (5), or text with a unit (\"30s\", \"15m\", \"1h\", \"1d\"). Defaults to 5.",
+          "type": "any",
+          "optional": true
+        },
+        {
+          "name": "mode",
+          "description": "\"last\": sample-and-hold. Defaults to last.",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "quality",
+          "description": "good (default), notbad, or any. Rejected samples are skipped and the previous value holds.",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "integers",
+          "description": "TRUE (default) truncates numbers to integers, so 6.0 reads as 6. FALSE keeps the stored type.",
+          "type": "boolean",
+          "optional": true
+        },
+        {
+          "name": "lookback",
+          "description": "How far before start to search for a seed value if the Historian's prior-value point is missing or rejected. Defaults to \"7d\".",
+          "type": "any",
+          "optional": true
+        },
+        {
+          "name": "columns",
+          "description": "Extra columns after each tag: any of \"quality\" (worst OPC quality code in the row's range), \"status\" (the same in words), \"samples\" (points logged), \"good%\" (share that were Good). E.g. \"quality,samples,good%\".",
+          "type": "any",
+          "optional": true,
+          "dimensionality": "matrix"
+        }
+      ],
+      "options": {
+        "requiresAddress": false
+      }
+    },
+    {
+      "id": "VALUE",
+      "name": "VALUE",
+      "description": "The current (or last known) value of a single Historian tag.",
+      "helpUrl": "https://github.com/jbknepp98/timebase-historian-excel-add-in#tbvalue",
+      "result": {
+        "dimensionality": "scalar"
+      },
+      "parameters": [
+        {
+          "name": "dataset",
+          "description": "Dataset name.",
+          "type": "any"
+        },
+        {
+          "name": "tag",
+          "description": "Tag name.",
+          "type": "any"
+        },
+        {
+          "name": "mode",
+          "description": "\"raw\" (default) returns the stored number or string. \"display\" resolves units and enum labels.",
+          "type": "string",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "id": "DATASETS",
+      "name": "DATASETS",
+      "description": "List the datasets on this Historian, with tag count, size and data age.",
+      "helpUrl": "https://github.com/jbknepp98/timebase-historian-excel-add-in#tbdatasets",
+      "result": {
+        "dimensionality": "matrix"
+      },
+      "parameters": []
+    },
+    {
+      "id": "TAGS",
+      "name": "TAGS",
+      "description": "Search tags in a dataset. Supports the Historian filter language: name:, description:, datatype:, type:, format:, AND/OR/NOT, and wildcards.",
+      "helpUrl": "https://github.com/jbknepp98/timebase-historian-excel-add-in#tbtags",
+      "result": {
+        "dimensionality": "matrix"
+      },
+      "parameters": [
+        {
+          "name": "dataset",
+          "description": "Dataset name.",
+          "type": "any"
+        },
+        {
+          "name": "query",
+          "description": "Filter query, e.g. \"name:Pump_* AND datatype:Double\". Blank returns every tag.",
+          "type": "string",
+          "optional": true
+        }
+      ]
+    }
+  ]
+}

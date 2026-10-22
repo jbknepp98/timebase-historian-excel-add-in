@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Timebase Historian functions</title>
+  <!--
+    The custom-functions runtime page. Excel loads this, never shown, to run
+    the TB.* worksheet functions. It is separate from the task pane on purpose:
+    the shared runtime (one page for both) does not execute sideloaded custom
+    functions on Excel for Mac 16.105 -- formulas stay at #BUSY! forever --
+    while this separate runtime does. See docs/decisions.md.
+  -->
+  <script src="../runtime/devlog.js"></script>
+  <!--
+    custom-functions-runtime.js only, as in Microsoft's own functions page: it
+    provides CustomFunctions and OfficeRuntime.storage. Adding office.js on top
+    throws "Attempting to change the getter of an unconfigurable property" on
+    Excel for Mac, because both define the same globals.
+  -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/custom-functions-runtime.js"></script>
+  <!--
+    A classic script, not a module: Excel for Mac evaluates the custom-functions
+    script as a classic script, so functions.js and its imports are flattened
+    by tools/bundle.js. tools/serve.js builds it on request; tools/package.js
+    writes it into dist/.
+  -->
+  <script src="functions.bundle.js"></script>
+</head>
+<body></body>
+</html>
